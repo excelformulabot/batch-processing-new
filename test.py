@@ -173,14 +173,19 @@ def process_csv():
             all_results.extend(batch_results)
         print("all results: ",all_results)
 
-    print("all results: ",all_results)
+    # print("all results: ",all_results)
     # Write the results to the buffer
     all_results.sort(key=lambda x: x[0])  # Sort by original index
-    print("all results after sorting : ",all_results)
+    # print("all results after sorting : ",all_results)
     for index, response in all_results:
+        if index >= len(raw_data):
+            print(f"Index {index} is out of bounds for raw_data with length {len(raw_data)}")
+            continue  # Skip this index if it's out of bounds
+        
         row_data = raw_data.iloc[index].tolist()
         row_data.append(response)
         csv_writer.writerow(row_data)
+
 
     print("Reached here")
     # Upload to S3 using the buffer
