@@ -167,18 +167,22 @@ def process_csv():
             batch_executor.submit(process_batch, batch, column_index, system_prompt, model, temperature, row_max_workers, categories)
             for batch in batches
         ]
-
+        print("Batch Futures : ",batch_futures)
         for future in concurrent.futures.as_completed(batch_futures):
             batch_results = future.result()
             all_results.extend(batch_results)
+        print("all results: ",all_results)
 
+    print("all results: ",all_results)
     # Write the results to the buffer
     all_results.sort(key=lambda x: x[0])  # Sort by original index
+    print("all results after sorting : ",all_results)
     for index, response in all_results:
         row_data = raw_data.iloc[index].tolist()
         row_data.append(response)
         csv_writer.writerow(row_data)
 
+    print("Reached here")
     # Upload to S3 using the buffer
     try:
         file_key = "filename" + "_final.csv"
