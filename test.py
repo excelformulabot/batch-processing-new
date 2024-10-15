@@ -169,8 +169,13 @@ def process_csv():
         ]
         print("Batch Futures : ",batch_futures)
         for future in concurrent.futures.as_completed(batch_futures):
-            batch_results = future.result()
-            all_results.extend(batch_results)
+            try:
+                batch_results = future.result()
+                all_results.extend(batch_results)
+            except Exception as e:
+                print(f"Error during batch processing: {e}")
+                return jsonify({"error": f"Error during batch processing: {str(e)}"}), 500
+
         print("All results for loop done! ")
         # print("all results: ",all_results)
 
