@@ -183,7 +183,7 @@ def lambda_handler(event, context):
 # Simulate running locally
 if __name__ == "__main__":
     event = {
-        "s3_file_url": "final_20k_records.csv",  # Replace with actual CSV file URL
+        "s3_file_url": "https://excel-formulabot-rds-storage.s3.us-east-2.amazonaws.com/final_20k_records.csv",  # Replace with actual CSV file URL
         "column_index": 2,
         "max_rows": 19900,
         "system_prompt": "Summarize the text in around 500-700 words.",
