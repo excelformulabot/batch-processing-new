@@ -23,7 +23,11 @@ headers = {
 bucket_name = os.getenv('AWS_S3_BUCKET')
 
 # S3 client setup (use your credentials or IAM role)
-s3_client = boto3.client('s3')
+# s3_client = boto3.client('s3')
+s3 = boto3.client('s3', 
+                      aws_access_key_id=os.getenv('AWS_ACCESS_KEY') 
+                      aws_secret_access_key=os.getenv('AWS_SECRET_KEY')
+                      region_name=os.getenv('AWS_REGION'))
 
 # Initialize a global counter and a lock for thread safety
 processed_records_counter = 0
