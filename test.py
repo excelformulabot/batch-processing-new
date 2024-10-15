@@ -171,11 +171,14 @@ def process_csv():
         for future in concurrent.futures.as_completed(batch_futures):
             batch_results = future.result()
             all_results.extend(batch_results)
-        print("all results: ",all_results)
+        print("All results for loop done! ")
+        # print("all results: ",all_results)
 
     # print("all results: ",all_results)
     # Write the results to the buffer
-    all_results.sort(key=lambda x: x[0])  # Sort by original index
+    print("About to sort! ")
+    all_results.sort(key=lambda x: x[0]) # Sort by original index
+    print("Sorted! ")
     # print("all results after sorting : ",all_results)
     for index, response in all_results:
         if index >= len(raw_data):
