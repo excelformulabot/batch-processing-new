@@ -9,7 +9,10 @@ import csv
 import boto3
 import io  # For using StringIO
 from flask import Flask, request, jsonify
+# from dotenv import load_dotenv
 
+# # Load the environment variables from the .env file
+# load_dotenv()
 # OpenAI API settings
 openai_api_key = os.getenv('OPENAI_API_KEY')
 base_url = "https://api.openai.com/v1"
@@ -199,6 +202,7 @@ def process_csv():
     # Upload to S3 using the buffer
     try:
         file_key = "filename" + "_final.csv"
+        csv_buffer.seek(0)
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=csv_buffer.getvalue(), ACL='private')
         csv_url = f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
         print(f"Uploading file to S3 bucket: {bucket_name}, key: {file_key}")
@@ -212,4 +216,4 @@ def process_csv():
 
 # Start the Flask app
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5005)
