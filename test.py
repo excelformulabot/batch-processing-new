@@ -10,7 +10,6 @@ import boto3
 import io  # For using StringIO
 
 # OpenAI API settings
-openai_api_key = os.getenv('OPENAI_API_KEY')
 base_url = "https://api.openai.com/v1"
 headers = {
     "Authorization": f"Bearer {openai_api_key}",
