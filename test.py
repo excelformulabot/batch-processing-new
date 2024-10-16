@@ -136,6 +136,7 @@ def process_csv():
         model = event['model']
         temperature = float(event['temperature'])
         tokens = int(event['tokens'])
+        file_name = event['file_name']
     except KeyError as e:
         return jsonify({"error": f"Missing parameter: {str(e)}"}), 400
 
@@ -206,7 +207,7 @@ def process_csv():
     print("Reached here")
     # Upload to S3 using the buffer
     try:
-        file_key = "filename" + "_final.csv"
+        file_key = file_name + "_final.csv"
         csv_buffer.seek(0)
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=csv_buffer.getvalue(), ACL='private')
         csv_url = f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
