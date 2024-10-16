@@ -51,7 +51,7 @@ def make_openai_call(prompt, model, temperature, tokens):
 
     for attempt in range(retries):
         try:
-            response = requests.post(url, headers=headers, json=data, timeout=2000)
+            response = requests.post(url, headers=headers, json=data, timeout=200)
             response.raise_for_status()
             response_json = response.json()
             return response_json['choices'][0]['message']['content'].strip()
@@ -102,9 +102,9 @@ def process_batch(batch, column_index, system_prompt, model, temperature, row_ma
                 for idx, row in batch.iterrows()
             }
 
-            for future in concurrent.futures.as_completed(futures, timeout=1200):
+            for future in concurrent.futures.as_completed(futures, timeout=3600):
                 try:
-                    index, response = future.result(timeout=1200)
+                    index, response = future.result(timeout=3600)
                     results.append((index, response))
                 except concurrent.futures.TimeoutError:
                     print(f"TimeoutError for record at index {futures[future]}. Skipping.")
