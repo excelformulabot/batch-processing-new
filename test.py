@@ -37,12 +37,12 @@ counter_lock = Lock()
 app = Flask(__name__)
 
 # Function to make OpenAI API call with retries
-def make_openai_call(prompt, model, temperature):
+def make_openai_call(prompt, model, temperature, tokens):
     url = f"{base_url}/chat/completions"
     data = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 700,
+        "max_tokens": tokens,
         "temperature": temperature
     }
 
@@ -63,7 +63,7 @@ def make_openai_call(prompt, model, temperature):
     return "Error: Unable to process"
 
 # Function to process a single row
-def process_row(index, row, column_index, system_prompt, model, temperature, categories):
+def process_row(index, row, column_index, system_prompt, model, temperature, categories, tokens):
     global processed_records_counter
     try:
         input_text = row[column_index]
@@ -72,7 +72,7 @@ def process_row(index, row, column_index, system_prompt, model, temperature, cat
         print(f"Processing record at index {index} with content: {input_text[:50]}...")
         start_time = time.time()
 
-        response = make_openai_call(prompt, model, temperature)
+        response = make_openai_call(prompt, model, temperature, tokens)
 
         elapsed_time = time.time() - start_time
         print(f"Completed processing for index {index}. Time taken: {elapsed_time:.2f} seconds")
@@ -90,7 +90,7 @@ def process_row(index, row, column_index, system_prompt, model, temperature, cat
         return index, "Error: Unable to process"
 
 # Function to process a batch of rows
-def process_batch(batch, column_index, system_prompt, model, temperature, row_max_workers, categories):
+def process_batch(batch, column_index, system_prompt, model, temperature, row_max_workers, categories, tokens):
     print(f"Processing batch with {len(batch)} records started...")
     start_time = time.time()
 
@@ -98,7 +98,7 @@ def process_batch(batch, column_index, system_prompt, model, temperature, row_ma
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=row_max_workers) as executor:
             futures = {
-                executor.submit(process_row, idx, row, column_index, system_prompt, model, temperature, categories): idx
+                executor.submit(process_row, idx, row, column_index, system_prompt, model, temperature, categories, tokens): idx
                 for idx, row in batch.iterrows()
             }
 
@@ -135,6 +135,7 @@ def process_csv():
         system_prompt = event['system_prompt']
         model = event['model']
         temperature = float(event['temperature'])
+        tokens = int(event['tokens'])
     except KeyError as e:
         return jsonify({"error": f"Missing parameter: {str(e)}"}), 400
 
@@ -171,7 +172,7 @@ def process_csv():
     with concurrent.futures.ThreadPoolExecutor(max_workers=batch_max_workers) as batch_executor:
         all_results = []
         batch_futures = [
-            batch_executor.submit(process_batch, batch, column_index, system_prompt, model, temperature, row_max_workers, categories)
+            batch_executor.submit(process_batch, batch, column_index, system_prompt, model, temperature, row_max_workers, categories, tokens)
             for batch in batches
         ]
         print("Batch Futures : ",batch_futures)
