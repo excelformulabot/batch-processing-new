@@ -36,6 +36,23 @@ counter_lock = Lock()
 # Flask app setup
 app = Flask(__name__)
 
+
+def count_errors_in_csv(csv_buffer):
+    csv_buffer.seek(0)  # Go back to the beginning of the buffer
+    error_count = 0
+    error_indexes = []
+    csv_reader = csv.reader(csv_buffer)
+    
+    # Skip the header row
+    next(csv_reader)
+    
+    for idx, row in enumerate(csv_reader):
+        if row[-1] == "Error: Unable to process":  # The response is the last column
+            error_count += 1
+            error_indexes.append(idx + 1)  # Add 1 to the index to account for the header row
+
+    return error_count, error_indexes
+    
 # Function to make OpenAI API call with retries
 def make_openai_call(prompt, model, temperature, tokens):
     url = f"{base_url}/chat/completions"
@@ -204,7 +221,11 @@ def process_csv():
         csv_writer.writerow(row_data)
 
 
+    error_count, error_indexes = count_errors_in_csv(csv_buffer)
+    print(f"Number of records with 'Error: Unable to process': {error_count}")
+    print(f"Indexes with errors: {error_indexes}")
     print("Reached here")
+    
     # Upload to S3 using the buffer
     try:
         file_key = file_name + "_final.csv"
@@ -218,7 +239,7 @@ def process_csv():
     end_time = time.time()
     print(f"Processing completed in {end_time - start_time:.2f} seconds & file uploaded to S3.")
 
-    return jsonify({"message": "Processing completed", "file_url": csv_url})
+    return jsonify({"message": "Processing completed", "file_url": csv_url, "error_count": error_count})
 
 # Start the Flask app
 if __name__ == '__main__':
