@@ -83,7 +83,7 @@ def make_openai_call(prompt, model, temperature, tokens):
 def process_row(index, row, column_index, system_prompt, model, temperature, categories, tokens):
     global processed_records_counter
     try:
-        input_text = row[column_index]
+        input_text = str(row[column_index])
         prompt = f"{system_prompt}\n\nInput: {str(input_text)}"
 
         print(f"Processing record at index {index} with content: {input_text[:50]}...")
