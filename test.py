@@ -84,7 +84,7 @@ def process_row(index, row, column_index, system_prompt, model, temperature, cat
     global processed_records_counter
     try:
         input_text = row[column_index]
-        prompt = f"{system_prompt}\n\nInput: {input_text}"
+        prompt = f"{system_prompt}\n\nInput: {str(input_text)}"
 
         print(f"Processing record at index {index} with content: {input_text[:50]}...")
         start_time = time.time()
@@ -138,6 +138,7 @@ def process_batch(batch, column_index, system_prompt, model, temperature, row_ma
     return results
 
 # Main function to process the request
+# Main function to process the request
 @app.route('/process_csv', methods=['POST'])
 def process_csv():
     global processed_records_counter
@@ -147,6 +148,7 @@ def process_csv():
     try:
         event = request.json
         csv_url = event['s3_file_url']
+        print(csv_url)
         column_index = int(event['column_index'])
         max_rows = int(event['max_rows'])
         system_prompt = event['system_prompt']
@@ -165,16 +167,15 @@ def process_csv():
     # Load the CSV
     try:
         raw_data = pd.read_csv(csv_url)
+        orig_data = raw_data
     except Exception as e:
         return jsonify({"error": f"Error reading CSV file: {str(e)}"}), 500
 
-    raw_data = raw_data.head(max_rows)  # Limit rows
+     
     categories = []
 
-    # Create batches
-    num_batches = (len(raw_data) + batch_size - 1) // batch_size
-    batches = [raw_data[i * batch_size:(i + 1) * batch_size] for i in range(num_batches)]
-    print(f"Processing {num_batches} batches with a batch size of {batch_size}.")
+    length_of_csv = len(raw_data)
+    print(f"Original CSV has {str(length_of_csv)} records")
 
     # Prepare to write CSV data to buffer instead of a file
     csv_buffer = io.StringIO()
@@ -183,6 +184,14 @@ def process_csv():
     csv_writer = csv.writer(csv_buffer)
     header = list(raw_data.columns) + ['Response']
     csv_writer.writerow(header)
+
+    # Limit rows
+    raw_data = raw_data.head(max_rows)
+
+    # Create batches
+    num_batches = (len(raw_data) + batch_size - 1) // batch_size
+    batches = [raw_data[i * batch_size:(i + 1) * batch_size] for i in range(num_batches)]
+    print(f"Processing {num_batches} batches with a batch size of {batch_size}.")
 
     # Start processing
     start_time = time.time()
@@ -220,12 +229,20 @@ def process_csv():
         row_data.append(response)
         csv_writer.writerow(row_data)
 
+    
+    remaining_rows = orig_data.iloc[max_rows:]  # Get rows beyond max_rows
+
+    for _, remaining_row in remaining_rows.iterrows():
+        remaining_row_data = remaining_row.tolist()
+        remaining_row_data.append('')  # Append an empty response
+        csv_writer.writerow(remaining_row_data)
+
 
     error_count, error_indexes = count_errors_in_csv(csv_buffer)
     print(f"Number of records with 'Error: Unable to process': {error_count}")
     print(f"Indexes with errors: {error_indexes}")
+
     print("Reached here")
-    
     # Upload to S3 using the buffer
     try:
         file_key = file_name + "_final.csv"
@@ -240,6 +257,7 @@ def process_csv():
     print(f"Processing completed in {end_time - start_time:.2f} seconds & file uploaded to S3.")
 
     return jsonify({"message": "Processing completed", "file_url": csv_url, "error_count": error_count})
+
 
 # Start the Flask app
 if __name__ == '__main__':
