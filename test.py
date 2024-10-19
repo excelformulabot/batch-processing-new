@@ -163,7 +163,7 @@ def process_csv():
     batch_size = 1000
     batch_max_workers = 10
     row_max_workers = 20
-    print(f"Starting CSV processing from URL: {csv_url}")
+    print(f"LOG: {request_id} Starting CSV processing from URL: {csv_url}")
 
     # Load the CSV
     try:
@@ -176,7 +176,7 @@ def process_csv():
     categories = []
 
     length_of_csv = len(raw_data)
-    print(f"Original CSV has {str(length_of_csv)} records")
+    print(f"LOG: {request_id} Original CSV has {str(length_of_csv)} records")
 
     # Prepare to write CSV data to buffer instead of a file
     csv_buffer = io.StringIO()
@@ -192,7 +192,7 @@ def process_csv():
     # Create batches
     num_batches = (len(raw_data) + batch_size - 1) // batch_size
     batches = [raw_data[i * batch_size:(i + 1) * batch_size] for i in range(num_batches)]
-    print(f"Processing {num_batches} batches with a batch size of {batch_size}.")
+    print(f"LOG: {request_id} {num_batches} batches with a batch size of {batch_size}.")
 
     # Start processing
     start_time = time.time()
@@ -212,18 +212,18 @@ def process_csv():
                 print(f"Error during batch processing: {e}")
                 return jsonify({"error": f"Error during batch processing: {str(e)}"}), 500
 
-        print("All results for loop done! ")
+        print(f"LOG: {request_id} All results for loop done! ")
         # print("all results: ",all_results)
 
     # print("all results: ",all_results)
     # Write the results to the buffer
-    print("About to sort! ")
+    print(f"LOG: {request_id} About to sort! ")
     all_results.sort(key=lambda x: x[0]) # Sort by original index
-    print("Sorted! ")
+    print(f"LOG: {request_id} Sorted! ")
     # print("all results after sorting : ",all_results)
     for index, response in all_results:
         if index >= len(raw_data):
-            print(f"Index {index} is out of bounds for raw_data with length {len(raw_data)}")
+            print(f"LOG: {request_id} Index {index} is out of bounds for raw_data with length {len(raw_data)}")
             continue  # Skip this index if it's out of bounds
         
         row_data = raw_data.iloc[index].tolist()
@@ -240,29 +240,29 @@ def process_csv():
 
 
     error_count, error_indexes = count_errors_in_csv(csv_buffer)
-    print(f"Number of records with 'Error: Unable to process': {error_count}")
-    print(f"Indexes with errors: {error_indexes}")
+    print(f"LOG: {request_id} Number of records with 'Error: Unable to process': {error_count}")
+    print(f"LOG: {request_id} Indexes with errors: {error_indexes}")
 
-    print("Reached here")
+    print(f"LOG: {request_id} Reached here")
     # Upload to S3 using the buffer
     try:
         file_key = file_name + "_final.csv"
         csv_buffer.seek(0)
         s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=csv_buffer.getvalue(), ACL='private')
         csv_url = f"https://{bucket_name}.s3.amazonaws.com/{file_key}"
-        print(f"Uploading file to S3 bucket: {bucket_name}, key: {file_key}")
+        print(f"LOG: {request_id} Uploading file to S3 bucket: {bucket_name}, key: {file_key}")
     except Exception as e:
         return jsonify({"error": f"Error uploading to S3: {str(e)}"}), 500
 
     end_time = time.time()
-    print(f"Processing completed in {end_time - start_time:.2f} seconds & file uploaded to S3.")
+    print(f"LOG: {request_id} Processing completed in {end_time - start_time:.2f} seconds & file uploaded to S3.")
 
-    print("Calling the webhook url now with our response ")
+    print(f"LOG: {request_id} Calling the webhook url now with our response ")
     response = jsonify({"message": "Processing completed", "file_url": csv_url, "error_count": error_count, "request_id": request_id})
 
     webhook_url = "https://excel-formula-bot2.bubbleapps.io/version-" + version_id + "/api/1.1/wf/data-enrichment/"
 
-    print(f"The webhook url {webhook_url}")
+    print(f"LOG: {request_id} The webhook url {webhook_url}")
     
     try:
         # Extract the JSON data from the response
@@ -276,7 +276,7 @@ def process_csv():
         response_generated_from_webhook_url.raise_for_status()
     
     except requests.exceptions.RequestException as e:
-        print(f"Error during post call to webhook url: {e}")
+        print(f"LOG: {request_id} Error during post call to webhook url: {e}")
 
     return response
 
