@@ -262,9 +262,19 @@ def process_csv():
 
     webhook_url = "https://excel-formula-bot2.bubbleapps.io/version-" + version_id + "/api/1.1/wf/data-enrichment/"
 
+    print(f"The webhook url {webhook_url}")
+    
     try:
-        response_generated_from_webhook_url = requests.post(webhook_url, json=response, timeout=200)
+        # Extract the JSON data from the response
+        response_data = response.get_json()  # Extract JSON from the Flask response
+        print(f"The response data  {response_data}")
+    
+        # Make the POST request to the webhook URL
+        response_generated_from_webhook_url = requests.post(webhook_url, json=response_data, timeout=200)
+        
+        # Raise an error if the request failed
         response_generated_from_webhook_url.raise_for_status()
+    
     except requests.exceptions.RequestException as e:
         print(f"Error during post call to webhook url: {e}")
 
