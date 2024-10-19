@@ -138,7 +138,6 @@ def process_batch(batch, column_index, system_prompt, model, temperature, row_ma
     return results
 
 # Main function to process the request
-# Main function to process the request
 @app.route('/process_csv', methods=['POST'])
 def process_csv():
     global processed_records_counter
@@ -156,6 +155,8 @@ def process_csv():
         temperature = float(event['temperature'])
         tokens = int(event['tokens'])
         file_name = event['file_name']
+        request_id = event['request_id']
+        version_id = event['version_id']
     except KeyError as e:
         return jsonify({"error": f"Missing parameter: {str(e)}"}), 400
 
@@ -256,8 +257,18 @@ def process_csv():
     end_time = time.time()
     print(f"Processing completed in {end_time - start_time:.2f} seconds & file uploaded to S3.")
 
-    return jsonify({"message": "Processing completed", "file_url": csv_url, "error_count": error_count})
+    print("Calling the webhook url now with our response ")
+    response = jsonify({"message": "Processing completed", "file_url": csv_url, "error_count": error_count, "request_id": request_id})
 
+    webhook_url = "https://excel-formula-bot2.bubbleapps.io/version-" + version_id + "/api/1.1/wf/data-enrichment/"
+
+    try:
+        response_generated_from_webhook_url = requests.post(webhook_url, json=response, timeout=200)
+        response_generated_from_webhook_url.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Error during post call to webhook url: {e}")
+
+    return response
 
 # Start the Flask app
 if __name__ == '__main__':
